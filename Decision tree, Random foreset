@@ -1,0 +1,76 @@
+install.packages("devtools")
+install.packages("rpart")
+install.packages("randomForest")
+library(devtools)
+library(rpart)
+library(randomForest)
+
+rm(list=ls())
+###############################################################################
+############################### Decision Tree #################################
+###############################################################################
+#data
+address <- "https://archive.ics.uci.edu/ml/machine-learning-databases/car/car.data"
+car97 <- read.csv(url(address), header = F)
+names(car97) <- c("BuyPrice","MaintPrice","Doors","Persons","Lug_Boot","Safety","Condition")
+head(car97)
+summary(car97)
+
+# Split into Train and Validation sets
+# Training Set : Validation Set = 70 : 30 (random)
+set.seed(100)
+n <- nrow(car97)
+train <- sample(n, 0.7*n, replace = FALSE)  
+TrainSet <- car97[train,]
+ValidSet <- car97[-train,]
+summary(TrainSet)
+summary(ValidSet)
+
+###########################################################
+##################### make decision tree ##################
+###########################################################
+fit.rpart <- rpart(Condition ~ ., data = TrainSet, method="class")
+plot(fit.rpart)
+text(fit.rpart)
+
+# print(fit.rpart)
+printcp(fit.rpart)   
+plotcp(fit.rpart)    
+
+# Pruning
+prn.rpart <- prune(fit.rpart, cp = 0.01)
+# print(prn.rpart)
+plot(prn.rpart)
+text(prn.rpart)
+ 
+pred.rpart <- predict(prn.rpart,newdata=ValidSet,type="class")
+tab <- table(ValidSet$Condition,pred.rpart,dnn=c("Actual","Predicted"))
+1-sum(diag(tab))/sum(tab) #error
+
+##########################################################################
+################### Ensemble - Random Forest model #######################
+##########################################################################
+# Create a Random Forest model with default parameters
+fit1.RF <- randomForest(Condition ~ ., data = TrainSet, importance = TRUE)
+print(fit1.RF)
+
+# Fine tuning parameters of Random Forest model
+fit2.RF <- randomForest(Condition ~ ., data = TrainSet, ntree = 500, mtry = 6, importance = TRUE)
+fit2.RF
+
+# Predicting on train set
+pred.RF <- predict(fit2.RF, TrainSet, type = "class")
+# Checking classification accuracy
+tab <- table(TrainSet$Condition,pred.RF)  
+## training error
+1-sum(diag(tab))/sum(tab)
+
+pred.RF <- predict(fit2.RF, ValidSet, type = "class")
+# Checking classification accuracy
+tab <- table(ValidSet$Condition,pred.RF,dnn=c("Actural","Predicted"))  
+# test error
+1-sum(diag(tab))/sum(tab)
+
+# To check important variables
+importance(fit2.RF)        
+varImpPlot(fit2.RF) 
