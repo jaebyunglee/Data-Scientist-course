@@ -1,0 +1,21 @@
+install.packages("tm")
+install.packages("SnowballC")
+install.packages("wordcloud")
+library(tm)
+bigdata = readLines("C:\\Users\\SM\\Desktop\\4_1_bigdata_wiki.txt")
+bigdata = bigdata[nchar(bigdata)!=1]
+cb = Corpus(VectorSource(bigdata))
+class(cb)
+cb=tm_map(cb,stripWhitespace)  
+cb=tm_map(cb,removeNumbers)  
+cb=tm_map(cb,removePunctuation)
+cb=tm_map(cb,tolower)
+cb=tm_map(cb,removeWords,stopwords("en"))
+cb[[11]][1]
+
+################## wordcloud######################
+library(wordcloud)
+tdm=TermDocumentMatrix(cb)
+mb=as.matrix(tdm)
+wf=sort(rowSums(mb),dec=T)
+wordcloud(names(wf),wf,min.freq=2,colors = brewer.pal(6,"Dark2"),random.order = F)
